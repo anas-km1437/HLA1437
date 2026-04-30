@@ -2,353 +2,182 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anas Chat Pro</title>
     <style>
-        :root {
-            --bg-color: #0b141a;
-            --panel-bg: #202c33;
-            --my-msg: #005c4b;
-            --other-msg: #202c33;
-            --accent: #00a884;
-            --text-main: #e9edef;
-            --text-muted: #8696a0;
-        }
-
-        body { 
-            margin: 0; 
-            background: var(--bg-color); 
-            color: var(--text-main); 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            height: 100vh; 
-            display: flex; 
-            flex-direction: column; 
-        }
-
-        /* شاشة الدخول */
-        #login-overlay { 
-            position: fixed; 
-            inset: 0; 
-            background: var(--bg-color); 
-            z-index: 1000; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            padding: 20px; 
-        }
-        .login-card { 
-            background: var(--panel-bg); 
-            padding: 30px; 
-            border-radius: 15px; 
-            width: 100%; 
-            max-width: 400px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
-        }
-        .login-card h2 { text-align: center; color: var(--accent); margin-bottom: 20px; }
-        .login-card input { 
-            width: 100%; 
-            padding: 12px; 
-            margin: 10px 0; 
-            border: none; 
-            border-radius: 8px; 
-            background: #2a3942; 
-            color: white; 
-            outline: none; 
-            box-sizing: border-box;
-        }
-        .login-card button { 
-            width: 100%; 
-            padding: 12px; 
-            background: var(--accent); 
-            border: none; 
-            border-radius: 8px; 
-            color: white; 
-            font-weight: bold; 
-            cursor: pointer; 
-            margin-top: 10px;
-        }
-
-        /* منطقة الدردشة */
-        .chat-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        body { margin:0; background:#0b141a; color:#e9edef; font-family:Arial; height:100vh; display:flex; flex-direction:column; }
+        #login { position:absolute; inset:0; background:#0b141a; display:flex; justify-content:center; align-items:center; z-index:100; gap:20px; flex-wrap:wrap; }
+        .card { background:#202c33; padding:20px; border-radius:10px; width:280px; }
+        input, button { width:100%; padding:10px; margin:5px 0; border:none; border-radius:5px; box-sizing:border-box; }
+        input { background:#2a3942; color:white; }
+        button { background:#00a884; color:white; cursor:pointer; font-weight:bold; }
         
-        #messages-list { 
-            flex: 1; 
-            overflow-y: auto; 
-            padding: 20px; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 8px; 
-            background-color: #0b141a;
-            background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
-            background-blend-mode: overlay;
-        }
-
-        .msg-box { 
-            max-width: 75%; 
-            padding: 8px 12px; 
-            border-radius: 12px; 
-            position: relative; 
-            font-size: 15px; 
-            box-shadow: 0 1px 2px rgba(0,0,0,0.2); 
-            cursor: pointer;
-        }
-        .my-msg { align-self: flex-end; background: var(--my-msg); border-top-left-radius: 12px; }
-        .other-msg { align-self: flex-start; background: var(--other-msg); border-top-right-radius: 12px; }
-
-        .msg-user { font-size: 12px; font-weight: bold; color: #ffbc38; margin-bottom: 3px; display: block; }
-        .msg-time { font-size: 10px; color: var(--text-muted); float: left; margin-top: 5px; margin-right: 10px; }
-
-        /* الرد على الرسائل */
-        .reply-box { 
-            background: rgba(0,0,0,0.2); 
-            border-right: 4px solid var(--accent); 
-            padding: 5px; 
-            margin-bottom: 5px; 
-            border-radius: 4px; 
-            font-size: 13px; 
-            color: #d1d7db;
-        }
-        #reply-preview { 
-            display: none; 
-            background: var(--panel-bg); 
-            padding: 10px; 
-            border-right: 5px solid var(--accent); 
-            margin: 0; 
-            border-bottom: 1px solid #2a3942;
-        }
-
-        /* الوسائط */
-        img, video { max-width: 100%; border-radius: 8px; margin: 5px 0; display: block; }
-        audio { height: 40px; width: 100%; max-width: 250px; margin-top: 5px; }
-
-        /* شريط الإدخال */
-        .input-bar { background: var(--panel-bg); padding: 10px 15px; display: flex; align-items: center; gap: 10px; }
-        .input-bar input[type="text"] { 
-            flex: 1; 
-            background: #2a3942; 
-            border: none; 
-            padding: 12px 15px; 
-            border-radius: 25px; 
-            color: white; 
-            outline: none; 
-        }
-        .icon-btn { cursor: pointer; color: var(--text-muted); font-size: 22px; transition: 0.2s; }
-        .icon-btn:hover { color: var(--text-main); }
-        .record-active { color: #f44336 !important; animation: blink 1s infinite; }
-
-        @keyframes blink { 50% { opacity: 0.5; } }
+        #messages { flex:1; overflow:auto; padding:20px; list-style:none; display:flex; flex-direction:column; gap:8px; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-opacity:0.06; }
+        .message-item { max-width:70%; padding:8px 12px; border-radius:10px; font-size:15px; position:relative; cursor:pointer; }
+        .my-message { align-self:flex-end; background:#005c4b; }
+        .other-message { align-self:flex-start; background:#202c33; }
+        .meta { font-size:11px; color:#8696a0; display:flex; justify-content:space-between; margin-bottom:4px; gap:10px;}
+        .user-label { color:#ffbc38; font-weight:bold; }
+        
+        .reply-area { background:rgba(0,0,0,0.2); border-right:3px solid #00a884; padding:4px; margin-bottom:5px; border-radius:4px; font-size:13px; color:#d1d7db; }
+        #reply-bar { background:#202c33; padding:10px; display:none; border-bottom:1px solid #2a3942; justify-content:space-between; }
+        
+        img, video { max-width:100%; border-radius:8px; margin-top:5px; }
+        audio { height:35px; width:200px; margin-top:5px; }
+        
+        .input-bar { display:flex; gap:10px; padding:10px; background:#202c33; align-items:center; }
+        #msg { flex:1; border-radius:20px; padding:10px 15px; }
+        .icon { font-size:20px; cursor:pointer; color:#8696a0; }
+        .recording { color:#f44336; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
     </style>
 </head>
 <body>
 
-<div id="login-overlay">
-    <div class="login-card">
-        <h2 id="login-title">دخول الغرفة</h2>
-        
-        <div id="login-form">
-            <input id="username" type="text" placeholder="اسمك المستعار">
-            <input id="room-name" type="text" placeholder="اسم الغرفة">
-            <input id="room-pass" type="password" placeholder="كلمة السر">
-            <button onclick="joinChat()">دخول</button>
-            <p style="text-align:center; font-size:12px; margin-top:15px; cursor:pointer" onclick="toggleForms()">أو أنشئ غرفة جديدة</p>
-        </div>
-
-        <div id="create-form" style="display:none">
-            <input id="new-room" type="text" placeholder="اسم الغرفة الجديدة">
-            <input id="new-pass" type="text" placeholder="كلمة سر الغرفة">
-            <button onclick="createNewRoom()" style="background:#22c55e">إنشاء الآن</button>
-            <p style="text-align:center; font-size:12px; margin-top:15px; cursor:pointer" onclick="toggleForms()">العودة لتسجيل الدخول</p>
-        </div>
+<div id="login">
+    <div class="card">
+        <h3>إنشاء غرفة</h3>
+        <input id="newRoom" placeholder="اسم الغرفة">
+        <input id="newPass" type="password" placeholder="كلمة السر">
+        <button onclick="createRoom()">إنشاء</button>
+    </div>
+    <div class="card">
+        <h3>دخول</h3>
+        <input id="username" placeholder="اسمك">
+        <input id="room" placeholder="اسم الغرفة">
+        <input id="password" type="password" placeholder="كلمة السر">
+        <button onclick="joinRoom()">دخول</button>
     </div>
 </div>
 
-<div class="chat-container">
-    <div id="messages-list"></div>
+<ul id="messages"></ul>
 
-    <div id="reply-preview">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span id="reply-text" style="font-size: 13px; color: var(--accent);"></span>
-            <span onclick="cancelReply()" style="cursor:pointer; color: var(--text-muted);">✕</span>
-        </div>
-    </div>
+<div id="reply-bar">
+    <span id="reply-text"></span>
+    <span onclick="cancelReply()" style="cursor:pointer">✕</span>
+</div>
 
-    <div class="input-bar">
-        <label for="file-input" class="icon-btn">📎</label>
-        <input type="file" id="file-input" hidden onchange="handleFileUpload()">
-        
-        <input id="msg-input" type="text" placeholder="اكتب رسالتك..." onkeypress="if(event.key==='Enter')sendMsg()">
-        
-        <span id="mic-btn" class="icon-btn" onclick="toggleRecording()">🎤</span>
-        <button onclick="sendMsg()" style="background:var(--accent); border:none; border-radius:50%; width:42px; height:42px; color:white; cursor:pointer; display:flex; align-items:center; justify-content:center;">➤</button>
-    </div>
+<div class="input-bar">
+    <label for="file" class="icon">📎</label>
+    <input type="file" id="file" hidden onchange="sendFile()">
+    <input id="msg" placeholder="اكتب رسالة..." onkeypress="if(event.key==='Enter')sendMessage()">
+    <span id="mic" class="icon" onclick="toggleMic()">🎤</span>
+    <button onclick="sendMessage()" style="width:auto; border-radius:50%; width:40px; height:40px;">➤</button>
 </div>
 
 <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
 <script>
-    const socket = io();
-    let me = "", myRoom = "", currentReply = null;
-    let mediaRecorder, audioChunks = [];
+const socket = io();
+let username = "", currentRoom = "", currentReply = null;
+let mediaRecorder, audioChunks = [];
 
-    // تبديل بين واجهة الدخول والإنشاء
-    function toggleForms() {
-        const isLogin = document.getElementById('login-form').style.display !== 'none';
-        document.getElementById('login-form').style.display = isLogin ? 'none' : 'block';
-        document.getElementById('create-form').style.display = isLogin ? 'block' : 'none';
-        document.getElementById('login-title').innerText = isLogin ? "إنشاء غرفة جديدة" : "دخول الغرفة";
-    }
+function createRoom(){
+    fetch("/create_room",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({name:document.getElementById("newRoom").value, password:document.getElementById("newPass").value})
+    }).then(r=>r.json()).then(d=>alert(d.msg));
+}
 
-    // إنشاء غرفة جديدة
-    function createNewRoom() {
-        const name = document.getElementById('new-room').value;
-        const pass = document.getElementById('new-pass').value;
-        if(!name || !pass) return alert("يرجى كتابة الاسم وكلمة السر");
+function joinRoom(){
+    username = document.getElementById("username").value;
+    currentRoom = document.getElementById("room").value;
+    let pass = document.getElementById("password").value;
+    if(!username || !currentRoom || !pass) return alert("اكمل البيانات");
+    socket.emit("join",{username, room:currentRoom, password:pass});
+}
 
-        fetch('/create_room', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({name, password: pass})
-        }).then(r => r.json()).then(d => {
-            alert(d.msg);
-            if(d.status === 'success') toggleForms();
-        });
-    }
+socket.on("join_status", status => {
+    if(status==='success') document.getElementById("login").style.display="none";
+});
 
-    // الدخول للغرفة
-    function joinChat() {
-        const u = document.getElementById('username').value;
-        const r = document.getElementById('room-name').value;
-        const p = document.getElementById('room-pass').value;
-        
-        if(!u || !r || !p) return alert("املأ جميع البيانات");
-        
-        socket.emit('join', {username: u, room: r, password: p});
-    }
+socket.on("error_msg", msg => alert(msg));
 
-    // معالجة ردود فعل الدخول
-    socket.on('join_error', (data) => alert(data.msg));
-    socket.on('join_success', (data) => {
-        me = data.username;
-        myRoom = data.room;
-        document.getElementById('login-overlay').style.display = 'none';
+function sendMessage(){
+    let msgInput = document.getElementById("msg");
+    if(!msgInput.value.trim() && !currentReply) return;
+    
+    socket.emit("message",{
+        username, room:currentRoom, 
+        msg:msgInput.value, 
+        reply_to: currentReply
     });
+    msgInput.value="";
+    cancelReply();
+}
 
-    // إرسال رسالة نصية
-    function sendMsg() {
-        const input = document.getElementById('msg-input');
-        const text = input.value.trim();
-        if(!text && !currentReply) return;
-
-        socket.emit('message', {
-            username: me,
-            room: myRoom,
-            msg: text,
-            reply_to: currentReply
-        });
-        
-        input.value = "";
-        cancelReply();
+socket.on("message", data => {
+    let li = document.createElement("li");
+    li.className = "message-item " + (data.username === username ? "my-message" : "other-message");
+    
+    let html = `<div class="meta"><span class="user-label">${data.username}</span><span>${data.time}</span></div>`;
+    
+    if(data.reply_to) html += `<div class="reply-area">"${data.reply_to}"</div>`;
+    
+    if(data.file){
+        if(data.file_type === 'image') html += `<img src="/static/uploads/${data.file}">`;
+        else if(data.file_type === 'video') html += `<video controls src="/static/uploads/${data.file}"></video>`;
+        else if(data.file_type === 'audio') html += `<audio controls src="/static/uploads/${data.file}"></audio>`;
     }
+    
+    if(data.msg) html += `<div>${data.msg}</div>`;
+    
+    li.innerHTML = html;
+    li.onclick = () => setReply(data.msg || "ملف");
+    document.getElementById("messages").appendChild(li);
+    document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
+});
 
-    // استقبال الرسائل والتاريخ
-    socket.on('history', (data) => {
-        document.getElementById('messages-list').innerHTML = "";
-        data.forEach(m => renderMessage(m));
-        scrollToBottom();
-    });
+function setReply(txt){
+    currentReply = txt;
+    document.getElementById("reply-text").innerText = "الرد على: " + txt;
+    document.getElementById("reply-bar").style.display = "flex";
+}
+function cancelReply(){
+    currentReply = null;
+    document.getElementById("reply-bar").style.display = "none";
+}
 
-    socket.on('message', (data) => {
-        renderMessage(data);
-        scrollToBottom();
-    });
-
-    function renderMessage(data) {
-        const list = document.getElementById('messages-list');
-        const div = document.createElement('div');
-        div.className = `msg-box ${data.username === me ? 'my-msg' : 'other-msg'}`;
-        
-        let html = `<span class="msg-user">${data.username}</span>`;
-        
-        if(data.reply_to) {
-            html += `<div class="reply-box">"${data.reply_to}"</div>`;
-        }
-
-        if(data.file) {
-            if(data.file_type === 'image') html += `<img src="/static/uploads/${data.file}">`;
-            else if(data.file_type === 'video') html += `<video controls src="/static/uploads/${data.file}"></video>`;
-            else if(data.file_type === 'audio') html += `<audio controls src="/static/uploads/${data.file}"></audio>`;
-        }
-        
-        if(data.msg) html += `<div>${data.msg}</div>`;
-        html += `<span class="msg-time">${data.time}</span>`;
-        
-        div.innerHTML = html;
-        div.onclick = () => setReply(data.msg || (data.file ? "ملف وسائط" : ""));
-        list.appendChild(div);
+async function sendFile(){
+    let file=document.getElementById("file").files[0];
+    if(!file) return;
+    const chunkSize=1024*512;
+    let offset=0, index=0;
+    while(offset<file.size){
+        let fd=new FormData();
+        fd.append("chunk",file.slice(offset,offset+chunkSize));
+        fd.append("filename",file.name);
+        fd.append("index",index);
+        await fetch("/upload_chunk",{method:"POST",body:fd});
+        offset+=chunkSize; index++;
     }
+    socket.emit("message",{username, room:currentRoom, file:file.name});
+}
 
-    // منطق الرد
-    function setReply(text) {
-        currentReply = text;
-        document.getElementById('reply-text').innerText = "الرد على: " + (text.length > 30 ? text.substring(0,30)+"..." : text);
-        document.getElementById('reply-preview').style.display = 'block';
-        document.getElementById('msg-input').focus();
+async function toggleMic(){
+    const micBtn = document.getElementById("mic");
+    if(!mediaRecorder || mediaRecorder.state === "inactive"){
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        mediaRecorder.onstop = async () => {
+            const blob = new Blob(audioChunks, { type: 'audio/webm' });
+            const filename = `voice_${Date.now()}.webm`;
+            await uploadFile(blob, filename);
+            socket.emit("message", {username, room:currentRoom, file:filename});
+        };
+        mediaRecorder.start();
+        micBtn.classList.add("recording");
+    } else {
+        mediaRecorder.stop();
+        micBtn.classList.remove("recording");
     }
-
-    function cancelReply() {
-        currentReply = null;
-        document.getElementById('reply-preview').style.display = 'none';
-    }
-
-    // تسجيل الصوت
-    async function toggleRecording() {
-        const btn = document.getElementById('mic-btn');
-        if (!mediaRecorder || mediaRecorder.state === "inactive") {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
-                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                mediaRecorder.onstop = async () => {
-                    const blob = new Blob(audioChunks, { type: 'audio/webm' });
-                    const filename = `voice_${Date.now()}.webm`;
-                    await uploadFile(blob, filename);
-                    socket.emit('message', {username: me, room: myRoom, file: filename});
-                };
-                mediaRecorder.start();
-                btn.classList.add('record-active');
-            } catch(e) { alert("لا يمكن الوصول للميكروفون"); }
-        } else {
-            mediaRecorder.stop();
-            btn.classList.remove('record-active');
-        }
-    }
-
-    // رفع الملفات
-    async function handleFileUpload() {
-        const file = document.getElementById('file-input').files[0];
-        if(!file) return;
-        await uploadFile(file, file.name);
-        socket.emit('message', {username: me, room: myRoom, file: file.name});
-    }
-
-    async function uploadFile(file, filename) {
-        const chunkSize = 1024 * 512;
-        let offset = 0, index = 0;
-        while(offset < file.size) {
-            const chunk = file.slice(offset, offset + chunkSize);
-            const fd = new FormData();
-            fd.append('chunk', chunk);
-            fd.append('filename', filename);
-            fd.append('index', index);
-            await fetch('/upload_chunk', {method: 'POST', body: fd});
-            offset += chunkSize; index++;
-        }
-    }
-
-    function scrollToBottom() {
-        const list = document.getElementById('messages-list');
-        list.scrollTop = list.scrollHeight;
-    }
+}
+async function uploadFile(blob, name){
+    let fd = new FormData();
+    fd.append("chunk", blob); fd.append("filename", name); fd.append("index", 0);
+    await fetch("/upload_chunk", {method:"POST", body:fd});
+}
 </script>
 </body>
 </html>
