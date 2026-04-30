@@ -4,13 +4,17 @@
     <meta charset="UTF-8">
     <title>Anas Chat 1437</title>
     <style>
-        body { margin:0; background:#0b141a; color:#e9edef; font-family:Arial; height:100vh; display:flex; flex-direction:column; }
+        body { margin:0; background:#0b141a; color:#e9edef; font-family:Arial; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+        
+        /* Login */
         #login { position:fixed; inset:0; background:#0b141a; display:flex; justify-content:center; align-items:center; z-index:1000; gap:20px; flex-wrap:wrap; }
         .card { background:#202c33; padding:20px; border-radius:10px; width:280px; }
-        input, button { width:100%; padding:10px; margin:5px 0; border:none; border-radius:5px; box-sizing:border-box; }
+        input, button { width:100%; padding:10px; margin:5px 0; border:none; border-radius:5px; box-sizing:border-box; outline:none; }
         input { background:#2a3942; color:white; }
-        button { background:#00a884; color:white; cursor:pointer; font-weight:bold; }
+        button { background:#00a884; color:white; cursor:pointer; font-weight:bold; transition: 0.2s; }
+        button:hover { background:#06cf9c; }
         
+        /* Chat Layout */
         #messages { flex:1; overflow:auto; padding:20px; list-style:none; display:flex; flex-direction:column; gap:8px; background-color:#0b141a; }
         
         /* خلفية خاصة لغرفة 1437 */
@@ -18,37 +22,45 @@
             background-image: url('/static/download.jpg') !important; 
             background-size: cover !important; 
             background-position: center !important;
+            background-color: rgba(11, 20, 26, 0.85) !important;
+            background-blend-mode: overlay;
         }
 
-        .message-item { max-width:70%; padding:8px 12px; border-radius:10px; position:relative; cursor:pointer; }
-        .my-message { align-self:flex-end; background:#005c4b; }
-        .other-message { align-self:flex-start; background:#202c33; }
+        .message-item { max-width:75%; padding:8px 12px; border-radius:10px; position:relative; cursor:pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        .my-message { align-self:flex-end; background:#005c4b; border-top-left-radius: 0; }
+        .other-message { align-self:flex-start; background:#202c33; border-top-right-radius: 0; }
+        
+        /* Reply System */
+        .reply-area { background:rgba(0,0,0,0.3); border-right:4px solid #00a884; padding:6px; margin-bottom:6px; border-radius:5px; font-size:13px; color:#cfd5d8; }
+        #reply-bar { background:#202c33; padding:12px; display:none; border-bottom:1px solid #2a3942; justify-content:space-between; align-items:center; }
         
         /* شريط التحميل */
-        #progress-container { width:100%; background:#2a3942; display:none; height:5px; }
+        #progress-container { width:100%; background:#2a3942; display:none; height:4px; }
         #progress-bar { width:0%; height:100%; background:#00a884; transition:0.2s; }
 
         /* معاينة الصوت */
         #voice-preview { display:none; background:#202c33; padding:10px; align-items:center; gap:10px; border-top:1px solid #2a3942; }
         
-        .input-bar { display:flex; gap:10px; padding:10px; background:#202c33; align-items:center; }
+        /* Input Bar */
+        .input-bar { display:flex; gap:10px; padding:10px 15px; background:#202c33; align-items:center; }
         #msg { flex:1; border-radius:20px; padding:10px 15px; background:#2a3942; color:white; border:none; }
-        .icon { font-size:20px; cursor:pointer; color:#8696a0; }
+        .icon { font-size:20px; cursor:pointer; color:#8696a0; transition: 0.2s; }
+        .icon:hover { color:#e9edef; }
         .recording { color:#f44336; animation: blink 1s infinite; }
-        @keyframes blink { 50% { opacity: 0; } }
+        @keyframes blink { 50% { opacity: 0.3; } }
     </style>
 </head>
 <body>
 
 <div id="login">
     <div class="card">
-        <h3>إنشاء غرفة</h3>
+        <h3 style="text-align:center; color:#00a884;">إنشاء غرفة</h3>
         <input id="newRoom" placeholder="اسم الغرفة">
         <input id="newPass" type="password" placeholder="كلمة السر">
         <button onclick="createRoom()">إنشاء</button>
     </div>
     <div class="card">
-        <h3>دخول</h3>
+        <h3 style="text-align:center; color:#00a884;">دخول</h3>
         <input id="username" placeholder="اسمك">
         <input id="room" placeholder="اسم الغرفة">
         <input id="password" type="password" placeholder="كلمة السر">
@@ -59,24 +71,35 @@
 <div id="progress-container"><div id="progress-bar"></div></div>
 <ul id="messages"></ul>
 
+<!-- شريط الرد -->
+<div id="reply-bar">
+    <div style="display:flex; flex-direction:column;">
+        <span style="font-size:11px; color:#00a884; font-weight:bold;">الرد على:</span>
+        <span id="reply-text" style="font-size:13px; color:#8696a0;"></span>
+    </div>
+    <span onclick="cancelReply()" style="cursor:pointer; font-size:20px;">✕</span>
+</div>
+
+<!-- معاينة الصوت -->
 <div id="voice-preview">
     <audio id="preview-player" controls style="flex:1"></audio>
     <button onclick="sendVoice()" style="width:auto; padding:5px 15px;">إرسال</button>
     <button onclick="cancelVoice()" style="width:auto; padding:5px 15px; background:#f44336;">حذف</button>
 </div>
 
+<!-- شريط الإدخال -->
 <div class="input-bar">
     <label for="file" class="icon">📎</label>
     <input type="file" id="file" hidden onchange="sendFile()">
     <input id="msg" placeholder="اكتب رسالة..." onkeypress="if(event.key==='Enter')sendMessage()">
     <span id="mic" class="icon" onclick="toggleMic()">🎤</span>
-    <button onclick="sendMessage()" style="width:40px; border-radius:50%;">➤</button>
+    <button onclick="sendMessage()" style="width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; padding:0;">➤</button>
 </div>
 
 <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
 <script>
     const socket = io();
-    let username = "", currentRoom = "", recordedBlob = null;
+    let username = "", currentRoom = "", currentReply = null, recordedBlob = null;
     let mediaRecorder, audioChunks = [];
 
     function createRoom(){
@@ -103,18 +126,58 @@
     socket.on("message", data => {
         let li = document.createElement("li");
         li.className = "message-item " + (data.username === username ? "my-message" : "other-message");
-        let content = `<div style="font-size:11px; color:#8696a0;">${data.username} • ${data.time}</div>`;
+        
+        let html = `<div style="font-size:11px; color:#8696a0; margin-bottom:4px; display:flex; justify-content:space-between;">
+            <span style="color:#ffbc38; font-weight:bold;">${data.username}</span><span>${data.time}</span>
+        </div>`;
+        
+        // إضافة منطقة الرد إذا كانت الرسالة عبارة عن رد
+        if(data.reply_to) html += `<div class="reply-area">"${data.reply_to}"</div>`;
+        
         if(data.file){
-            if(data.file_type==='image') content += `<img src="/static/uploads/${data.file}" style="max-width:100%; border-radius:5px;">`;
-            else if(data.file_type==='video') content += `<video controls src="/static/uploads/${data.file}" style="max-width:100%; border-radius:5px;"></video>`;
-            else if(data.file_type==='audio') content += `<audio controls src="/static/uploads/${data.file}"></audio>`;
+            if(data.file_type==='image') html += `<img src="/static/uploads/${data.file}" style="max-width:100%; border-radius:5px; margin-top:5px;">`;
+            else if(data.file_type==='video') html += `<video controls src="/static/uploads/${data.file}" style="max-width:100%; border-radius:5px; margin-top:5px;"></video>`;
+            else if(data.file_type==='audio') html += `<audio controls src="/static/uploads/${data.file}" style="margin-top:5px;"></audio>`;
         }
-        if(data.msg) content += `<div>${data.msg}</div>`;
-        li.innerHTML = content;
+        if(data.msg) html += `<div>${data.msg}</div>`;
+        
+        li.innerHTML = html;
+        
+        // تفعيل الرد عند الضغط على الرسالة
+        li.onclick = () => setReply(data.msg || "ملف وسائط");
+        
         document.getElementById("messages").appendChild(li);
         document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
     });
 
+    /* دوال الرد */
+    function setReply(txt){
+        currentReply = txt;
+        document.getElementById("reply-text").innerText = txt.substring(0, 50) + (txt.length > 50 ? "..." : "");
+        document.getElementById("reply-bar").style.display = "flex";
+        document.getElementById("msg").focus();
+    }
+
+    function cancelReply(){
+        currentReply = null;
+        document.getElementById("reply-bar").style.display = "none";
+    }
+
+    function sendMessage(){
+        let msgInput = document.getElementById("msg");
+        if(!msgInput.value.trim() && !currentReply) return;
+        
+        socket.emit("message",{
+            username: username, 
+            room: currentRoom, 
+            msg: msgInput.value,
+            reply_to: currentReply // إرسال الرد مع الرسالة
+        });
+        msgInput.value="";
+        cancelReply(); // إغلاق شريط الرد بعد الإرسال
+    }
+
+    /* دوال رفع الملفات مع شريط التقدم */
     async function sendFile(){
         let file=document.getElementById("file").files[0];
         if(!file) return;
@@ -130,10 +193,12 @@
             offset+=chunkSize; index++;
             document.getElementById("progress-bar").style.width = Math.min((offset/file.size)*100, 100) + "%";
         }
-        socket.emit("message",{username, room:currentRoom, file:file.name});
-        setTimeout(()=> document.getElementById("progress-container").style.display="none", 1000);
+        socket.emit("message",{username, room:currentRoom, file:file.name, reply_to: currentReply});
+        setTimeout(()=> { document.getElementById("progress-container").style.display="none"; document.getElementById("progress-bar").style.width="0%"; }, 1000);
+        cancelReply();
     }
 
+    /* دوال الصوت */
     async function toggleMic(){
         if(!mediaRecorder || mediaRecorder.state === "inactive"){
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -157,20 +222,14 @@
         let fname = `voice_${Date.now()}.webm`;
         let fd=new FormData(); fd.append("chunk", recordedBlob); fd.append("filename", fname); fd.append("index", 0);
         await fetch("/upload_chunk",{method:"POST", body:fd});
-        socket.emit("message",{username, room:currentRoom, file:fname});
+        socket.emit("message",{username, room:currentRoom, file:fname, reply_to: currentReply});
         cancelVoice();
+        cancelReply();
     }
 
     function cancelVoice(){
         document.getElementById("voice-preview").style.display="none";
         recordedBlob = null;
-    }
-
-    function sendMessage(){
-        let msg = document.getElementById("msg");
-        if(!msg.value.trim()) return;
-        socket.emit("message",{username, room:currentRoom, msg:msg.value});
-        msg.value="";
     }
 </script>
 </body>
