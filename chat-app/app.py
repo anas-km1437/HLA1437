@@ -116,7 +116,9 @@ def handle_message(data):
     data['file_type'] = f_type
     emit('message', data, to=data['room'])
 
+# هذا السطر سيجبر Render على إنشاء قاعدة البيانات فور تشغيل السيرفر
+with app.app_context():
+    db.create_all()
+
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
     socketio.run(app, host='0.0.0.0', port=10000)
