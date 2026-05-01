@@ -3,33 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Chat With Mic</title>
+    <title>Chat With Mic Preview</title>
     <style>
         :root { --bg: #0b141a; --header: #202c33; --accent: #00a884; --input: #2a3942; }
         body { margin:0; background: var(--bg); color:#e9edef; font-family: sans-serif; height: 100dvh; display:flex; flex-direction:column; overflow:hidden; }
         
-        /* شاشة الدخول */
         #login-screen { position:fixed; inset:0; background: var(--bg); display:flex; justify-content:center; align-items:center; z-index:1000; padding:20px; overflow-y:auto; flex-wrap:wrap; gap:20px; }
         .card { background: var(--header); padding:20px; border-radius:15px; width:100%; max-width:320px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
         input, button { width:100%; padding:14px; margin:8px 0; border:none; border-radius:10px; font-size:16px; box-sizing:border-box; }
         input { background: var(--input); color:white; }
         button { background: var(--accent); color:white; font-weight:bold; cursor:pointer; }
 
-        /* الشات */
         .chat-header { background: var(--header); padding:10px 15px; display:none; justify-content:space-between; align-items:center; border-bottom: 1px solid #313d45; }
         #messages { flex:1; overflow-y:auto; padding:15px; list-style:none; display:flex; flex-direction:column; gap:12px; margin:0; }
         .message-item { max-width:85%; padding:10px 14px; border-radius:12px; font-size:16px; color:white; position:relative; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
         .my-message { align-self:flex-end; background:#005c4b; border-top-left-radius:0; }
         .other-message { align-self:flex-start; background: var(--header); border-top-right-radius:0; }
 
-        /* شريط الإدخال */
         .input-area { background: var(--header); padding: 10px 10px calc(12px + env(safe-area-inset-bottom)); display:none; flex-direction:column; border-top: 1px solid #2a3942; }
-        .input-bar { display:flex; gap:12px; align-items:center; }
+        
+        /* شريط الكتابة العادي */
+        .input-bar { display:flex; gap:12px; align-items:center; width: 100%; }
         #msg { flex:1; border-radius:25px; padding:12px 18px; background: var(--input); color:white; border:none; font-size:16px; }
         .icon-btn { font-size:24px; cursor:pointer; color:#8696a0; }
         .mic-active { color: #ff4b4b !important; animation: pulse 1s infinite; }
         .send-btn { width:48px; height:48px; border-radius:50%; background: var(--accent); color:white; border:none; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:20px; }
         
+        /* شريط معاينة الصوت */
+        #audio-preview-bar { display:none; gap:10px; align-items:center; width: 100%; background: var(--input); padding: 5px 10px; border-radius: 25px; box-sizing: border-box; }
+        #preview-player { flex:1; height: 35px; }
+        .action-btn { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; color: white; font-size: 18px; flex-shrink:0; margin:0;}
+        .btn-send-audio { background: var(--accent); }
+        .btn-cancel-audio { background: #ff4b4b; }
+
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
         #reply-bar { display:none; background: rgba(0,0,0,0.2); padding:8px; border-radius:8px; margin-bottom:8px; border-right: 4px solid var(--accent); justify-content:space-between; }
     </style>
@@ -46,15 +52,23 @@
 
 <div class="input-area" id="input-area">
     <div id="reply-bar"><span id="reply-text"></span><span onclick="cancelReply()">✕</span></div>
-    <div class="input-bar">
+    
+    <!-- شريط إدخال النصوص والمايك -->
+    <div class="input-bar" id="main-input-bar">
         <label for="file" class="icon-btn">📎</label>
         <input type="file" id="file" hidden onchange="sendFile()">
         
-        <!-- زر المايك -->
         <span id="mic-btn" class="icon-btn" onclick="toggleMic()">🎤</span>
         
         <input id="msg" placeholder="رسالة..." autocomplete="off">
         <button class="send-btn" onclick="sendMessage()">➤</button>
+    </div>
+
+    <!-- شريط معاينة الصوت (مخفي افتراضياً) -->
+    <div id="audio-preview-bar">
+        <button class="action-btn btn-cancel-audio" onclick="cancelAudio()">🗑️</button>
+        <audio id="preview-player" controls></audio>
+        <button class="action-btn btn-send-audio" onclick="sendPendingAudio()">✅</button>
     </div>
 </div>
 
@@ -63,6 +77,7 @@
     const socket = io();
     let me, myRoom, myPass, myReply = null;
     let mediaRecorder, audioChunks = [];
+    let pendingAudioBlob = null; // تخزين الصوت مؤقتاً
 
     async function createRoom() {
         const name=document.getElementById("cName").value; const pass=document.getElementById("cPass").value;
@@ -101,28 +116,58 @@
         document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
     });
 
-    // منطق المايك
+    // --- منطق التسجيل والمعاينة ---
     async function toggleMic() {
         const btn = document.getElementById("mic-btn");
         if (!mediaRecorder || mediaRecorder.state === "inactive") {
+            // بدء التسجيل
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaRecorder = new MediaRecorder(stream);
             audioChunks = [];
             mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-            mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                const fileName = `voice_${Date.now()}.webm`;
-                let fd = new FormData(); fd.append("chunk", audioBlob); fd.append("filename", fileName); fd.append("index", 0);
-                await fetch("/upload_chunk", { method: "POST", body: fd });
-                socket.emit("message", { username: me, room: myRoom, file: fileName, reply_to: myReply });
+            
+            mediaRecorder.onstop = () => {
+                // إيقاف التسجيل وتجهيز المعاينة
+                pendingAudioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                const audioUrl = URL.createObjectURL(pendingAudioBlob);
+                document.getElementById("preview-player").src = audioUrl;
+                
+                // إخفاء شريط الكتابة وإظهار شريط الصوت
+                document.getElementById("main-input-bar").style.display = "none";
+                document.getElementById("audio-preview-bar").style.display = "flex";
+                
                 btn.classList.remove("mic-active");
             };
+            
             mediaRecorder.start();
             btn.classList.add("mic-active");
         } else {
+            // إيقاف التسجيل (سينتقل تلقائياً للـ onstop فوق)
             mediaRecorder.stop();
         }
     }
+
+    // إرسال الصوت بعد الموافقة عليه
+    async function sendPendingAudio() {
+        if(!pendingAudioBlob) return;
+        const fileName = `voice_${Date.now()}.webm`;
+        let fd = new FormData(); fd.append("chunk", pendingAudioBlob); fd.append("filename", fileName); fd.append("index", 0);
+        
+        await fetch("/upload_chunk", { method: "POST", body: fd });
+        socket.emit("message", { username: me, room: myRoom, file: fileName, reply_to: myReply });
+        
+        cancelAudio(); // تنظيف الواجهة بعد الإرسال
+    }
+
+    // إلغاء الصوت وحذفه
+    function cancelAudio() {
+        pendingAudioBlob = null;
+        document.getElementById("preview-player").src = "";
+        document.getElementById("audio-preview-bar").style.display = "none";
+        document.getElementById("main-input-bar").style.display = "flex";
+    }
+
+    // --------------------------------
 
     function sendMessage() {
         const input = document.getElementById("msg");
