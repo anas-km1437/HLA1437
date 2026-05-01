@@ -3,77 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Chat Room</title>
+    <title>Chat Pro</title>
     <style>
         :root { --bg-dark: #0b141a; --header-bg: #202c33; --accent: #00a884; --input-bg: #2a3942; }
         
-        /* جعل الطول يتناسب مع طول الجوال الحقيقي */
         body { margin:0; background: var(--bg-dark); color:#e9edef; font-family: sans-serif; height: 100dvh; display:flex; flex-direction:column; overflow:hidden; }
         
-        #login { position:fixed; inset:0; background: var(--bg-dark); display:flex; justify-content:center; align-items:center; z-index:1000; padding:20px; overflow-y:auto; }
-        .card { background: var(--header-bg); padding:25px; border-radius:15px; width:100%; max-width:320px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+        /* شاشة الدخول والإنشاء */
+        #login { position:fixed; inset:0; background: var(--bg-dark); display:flex; justify-content:center; align-items:center; z-index:1000; padding:20px; overflow-y:auto; flex-wrap:wrap; gap:20px; }
+        .card { background: var(--header-bg); padding:20px; border-radius:15px; width:100%; max-width:320px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+        h3 { text-align:center; color: var(--accent); margin-top:0; margin-bottom:15px; }
         input, button { width:100%; padding:14px; margin:8px 0; border:none; border-radius:10px; font-size:16px; box-sizing:border-box; }
         input { background: var(--input-bg); color:white; border: 1px solid transparent; }
         input:focus { border-color: var(--accent); outline:none; }
-        button { background: var(--accent); color:white; font-weight:bold; cursor:pointer; }
+        button { background: var(--accent); color:white; font-weight:bold; cursor:pointer; transition:0.2s; }
+        button:hover { opacity:0.9; }
 
+        /* الهيدر */
         .chat-header { background: var(--header-bg); padding:12px 15px; display:none; justify-content:space-between; align-items:center; z-index:10; border-bottom: 1px solid #313d45; }
-        #online-list { font-size:14px; color: var(--accent); font-weight:bold; }
+        #online-list { font-size:13px; color: var(--accent); font-weight:bold; }
 
         /* منطقة الرسائل */
-        #messages { flex:1; overflow-y:auto; padding:15px; list-style:none; display:flex; flex-direction:column; gap:12px; margin:0; background-color: var(--bg-dark); }
-        .message-item { max-width:85%; padding:10px 14px; border-radius:12px; font-size:16px; color:white; word-wrap:break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+        #messages { flex:1; overflow-y:auto; padding:15px; list-style:none; display:flex; flex-direction:column; gap:12px; margin:0; background-color: var(--bg-dark); transition: background 0.3s; }
+        .message-item { max-width:85%; padding:10px 14px; border-radius:12px; font-size:16px; color:white; word-wrap:break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.3); position:relative; }
         .my-message { align-self:flex-end; background:#005c4b; border-top-left-radius: 0; }
         .other-message { align-self:flex-start; background: var(--header-bg); border-top-right-radius: 0; }
 
-        /* شريط الرد */
-        #reply-bar { display:none; background: var(--header-bg); padding:10px 15px; border-bottom: 1px solid var(--input-bg); justify-content:space-between; align-items:center; }
-
         /* منطقة الإدخال المطورة للنقال */
-        .input-area { background: var(--header-bg); padding: 10px 10px calc(10px + env(safe-area-inset-bottom)); box-shadow: 0 -4px 10px rgba(0,0,0,0.2); display:none; flex-direction:column; }
+        .input-area { background: var(--header-bg); padding: 10px 10px calc(12px + env(safe-area-inset-bottom)); box-shadow: 0 -4px 10px rgba(0,0,0,0.2); display:none; flex-direction:column; z-index:20; }
         .input-bar { display:flex; gap:10px; align-items:center; }
         #msg { flex:1; border-radius:25px; padding:12px 18px; background: var(--input-bg); color:white; border:none; font-size:16px; }
         
         .icon-btn { font-size:24px; cursor:pointer; color:#8696a0; width:40px; text-align:center; }
         .send-btn { width:48px; height:48px; border-radius:50%; background: var(--accent); color:white; border:none; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:20px; }
 
+        /* شريط الرد */
+        #reply-bar { display:none; background: rgba(0,0,0,0.2); padding:8px 12px; border-radius:8px; margin-bottom:8px; justify-content:space-between; align-items:center; border-right:4px solid var(--accent); }
+
         #settings-modal { position:fixed; inset:0; background:rgba(0,0,0,0.85); display:none; justify-content:center; align-items:center; z-index:2000; padding:20px; }
+        
+        @media (max-width: 600px) {
+            .message-item { max-width: 90%; font-size:16px; }
+            .card { padding: 15px; }
+        }
     </style>
 </head>
 <body>
 
 <div id="login">
+    <!-- كرت إنشاء الغرفة -->
     <div class="card">
-        <h3 style="text-align:center; color:var(--accent);">دخول الغرفة</h3>
-        <input id="username" placeholder="اسمك">
+        <h3>إنشاء غرفة جديدة</h3>
+        <input id="newRoom" placeholder="اسم الغرفة">
+        <input id="newPass" type="password" placeholder="كلمة السر">
+        <input id="newBg" placeholder="رابط صورة الخلفية (اختياري)">
+        <button onclick="createRoom()">إنشاء الغرفة</button>
+    </div>
+
+    <!-- كرت الدخول -->
+    <div class="card">
+        <h3>دخول للدردشة</h3>
+        <input id="username" placeholder="اسمك المستعار">
         <input id="room" placeholder="اسم الغرفة">
         <input id="password" type="password" placeholder="كلمة السر">
-        <button onclick="joinRoom()">دخول</button>
-        <hr style="border:0; border-top:1px solid #313d45; margin:15px 0;">
-        <button style="background:#3b4a54;" onclick="document.getElementById('create-area').style.display='block'">إنشاء غرفة جديدة</button>
-        <div id="create-area" style="display:none; margin-top:10px;">
-            <input id="newRoom" placeholder="اسم الغرفة الجديدة">
-            <input id="newPass" type="password" placeholder="سر الغرفة">
-            <input id="newBg" placeholder="رابط الخلفية">
-            <button onclick="createRoom()">تأكيد الإنشاء</button>
-        </div>
+        <button onclick="joinRoom()">دخول الآن</button>
     </div>
 </div>
 
 <div class="chat-header" id="chat-header">
-    <div id="online-list">متصل...</div>
-    <div onclick="openSettings()" style="cursor:pointer; font-size:20px;">⚙️</div>
+    <div id="online-list">متصل: جاري التحميل...</div>
+    <div onclick="openSettings()" style="cursor:pointer; font-size:22px;">⚙️</div>
 </div>
 
-<div id="settings-modal"><div class="card"><h3>تحديث الخلفية</h3><input id="updateBgInput" placeholder="رابط الصورة المباشر"><button onclick="saveSettings()">تحديث</button><button onclick="closeSettings()" style="background:#3b4a54">إلغلاق</button></div></div>
+<div id="settings-modal">
+    <div class="card">
+        <h3>تغيير الخلفية</h3>
+        <input id="updateBgInput" placeholder="رابط الصورة المباشر">
+        <button onclick="saveSettings()">تحديث للجميع</button>
+        <button onclick="closeSettings()" style="background:#3b4a54">إلغلاق</button>
+    </div>
+</div>
 
 <ul id="messages"></ul>
 
-<!-- منطقة الإدخال الكاملة -->
 <div class="input-area" id="input-area">
     <div id="reply-bar">
         <span id="reply-text" style="font-size:13px; color:var(--accent); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
-        <span onclick="cancelReply()" style="cursor:pointer; padding:5px;">✕</span>
+        <span onclick="cancelReply()" style="cursor:pointer; padding:0 5px; color:#8696a0;">✕</span>
     </div>
     <div class="input-bar">
         <label for="file" class="icon-btn">📎</label>
@@ -92,12 +108,13 @@
         const name=document.getElementById("newRoom").value;
         const pass=document.getElementById("newPass").value;
         const bg=document.getElementById("newBg").value;
+        if(!name || !pass) return alert("أدخل البيانات");
         fetch("/create_room",{method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({name, password:pass, background:bg})}).then(r=>r.json()).then(d=>alert(d.msg));
     }
 
     function joinRoom(){
         username=document.getElementById("username").value; currentRoom=document.getElementById("room").value; currentPass=document.getElementById("password").value;
-        if(!username || !currentRoom) return alert("أكمل البيانات");
+        if(!username || !currentRoom) return alert("أكمل بيانات الدخول");
         socket.emit("join",{username, room:currentRoom, password:currentPass});
     }
 
@@ -111,6 +128,8 @@
     });
 
     socket.on("error_msg", m => alert(m));
+    socket.on("update_users", users => { document.getElementById("online-list").innerText = "المتواجدون: " + users.join(" ، "); });
+    socket.on("bg_updated", bgUrl => applyBackground(bgUrl));
 
     function applyBackground(url){
         const msgBox = document.getElementById("messages");
@@ -118,20 +137,21 @@
         msgBox.style.backgroundSize = "cover";
         msgBox.style.backgroundPosition = "center top";
         msgBox.style.backgroundAttachment = "fixed";
+        msgBox.style.backgroundRepeat = "no-repeat";
     }
 
     socket.on("message", d => {
         let li = document.createElement("li");
         li.className = "message-item " + (d.username === username ? "my-message" : "other-message");
-        let html = `<div style="font-size:11px; opacity:0.8; margin-bottom:4px; font-weight:bold;">${d.username} <span style="float:left; font-weight:normal;">${d.time}</span></div>`;
-        if(d.reply_to) html += `<div style="background:rgba(0,0,0,0.1); border-right:3px solid var(--accent); padding:5px; margin-bottom:5px; font-size:13px;">${d.reply_to}</div>`;
+        let html = `<div style="font-size:11px; opacity:0.8; margin-bottom:4px; font-weight:bold; color:#ffbc38;">${d.username} <span style="float:left; font-weight:normal; color:#8696a0;">${d.time}</span></div>`;
+        if(d.reply_to) html += `<div style="background:rgba(0,0,0,0.15); border-right:3px solid var(--accent); padding:5px; margin-bottom:5px; font-size:13px; border-radius:4px;">${d.reply_to}</div>`;
         if(d.file) {
-            if(d.file_type==='image') html += `<img src="/static/uploads/${d.file}" style="max-width:100%; border-radius:8px;">`;
-            else html += `<div style="padding:10px; background:rgba(255,255,255,0.1); border-radius:8px;">📁 ملف مرفق</div>`;
+            if(d.file_type==='image') html += `<img src="/static/uploads/${d.file}" style="max-width:100%; border-radius:8px; display:block;">`;
+            else html += `<div style="padding:10px; background:rgba(255,255,255,0.05); border-radius:8px;">📁 ملف مرفق</div>`;
         }
         if(d.msg) html += `<div>${d.msg}</div>`;
         li.innerHTML = html;
-        li.onclick = () => { currentReply=d.msg; document.getElementById("reply-bar").style.display="flex"; document.getElementById("reply-text").innerText=d.msg; };
+        li.onclick = () => { currentReply=d.msg; document.getElementById("reply-bar").style.display="flex"; document.getElementById("reply-text").innerText=d.msg; document.getElementById("msg").focus(); };
         document.getElementById("messages").appendChild(li);
         document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
     });
@@ -151,7 +171,6 @@
         fetch("/update_bg",{method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({room:currentRoom, password:currentPass, bg_url:document.getElementById("updateBgInput").value})}).then(r=>r.json()).then(d=>{alert(d.msg); closeSettings();});
     }
 
-    // إرسال الملفات بشكل مبسط
     async function sendFile(){
         let file=document.getElementById("file").files[0];
         if(!file) return;
