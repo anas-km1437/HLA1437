@@ -7,7 +7,7 @@ from datetime import datetime
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret_anas_1437'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat_pro_v3.db' # قاعدة بيانات جديدة V3
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat_pro_v3.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -21,7 +21,7 @@ class Room(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True)
     password = db.Column(db.String(50))
-    background = db.Column(db.String(500), default="") # مسار الخلفية
+    background = db.Column(db.String(500), default="")
 
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -33,8 +33,8 @@ class Message(db.Model):
     reply_to = db.Column(db.String(500))
     time = db.Column(db.String(20))
 
-# ===== MEMORY (للمتصلين) =====
-online_users = {} # { "room_name": { "session_id": "username" } }
+# ===== MEMORY =====
+online_users = {} 
 
 # ===== ROUTES =====
 @app.route('/')
@@ -85,7 +85,6 @@ def join(data):
     
     join_room(room_name)
     
-    # إدارة المتصلين
     if room_name not in online_users:
         online_users[room_name] = {}
     online_users[room_name][request.sid] = data['username']
@@ -93,7 +92,6 @@ def join(data):
     emit('join_status', {'status': 'success', 'bg': r.background})
     emit('update_users', list(online_users[room_name].values()), to=room_name)
 
-    # جلب الرسائل
     msgs = Message.query.filter_by(room=room_name).all()
     for m in msgs:
         emit('message', {
