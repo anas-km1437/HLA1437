@@ -176,13 +176,12 @@
         const msgBox = document.getElementById("messages");
         msgBox.style.backgroundImage = `url('${url}')`;
     
-        // هذه الخصائص تضمن ظهور الصورة بشكل كامل ومتناسق
-        msgBox.style.backgroundSize = "cover"; // تغطي مساحة الشات بالكامل
-        msgBox.style.backgroundPosition = "center center"; // توسيط الصورة عشان ما تنقص من الأطراف المهمة
-        msgBox.style.backgroundAttachment = "fixed"; // تثبيت الصورة بحيث ما تتحرك أو تتشوه لما تنزل وتقرأ الرسايل
-        msgBox.style.backgroundRepeat = "no-repeat"; // منع تكرار الصورة
-    
-        msgBox.style.backgroundColor = "rgba(11, 20, 26, 0.85)";
+        // الخيار الأول: إظهار الصورة كاملة (بدون تمطيط) مع خلفية غامقة للجوانب
+        msgBox.style.backgroundSize = "contain"; 
+        msgBox.style.backgroundRepeat = "no-repeat";
+        msgBox.style.backgroundPosition = "center center";
+        msgBox.style.backgroundAttachment = "fixed";
+        msgBox.style.backgroundColor = "#0b141a"; // لون الخلفية الأصلي لسد الفراغات الجانبية
     }
 
     function openSettings() { document.getElementById("settings-modal").style.display="flex"; }
