@@ -2,53 +2,66 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
+    <!-- السطر السحري لدعم النقال (شاشات الجوال) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Anas Chat 437</title>
     <style>
-        body { margin:0; background:#0b141a; color:#e9edef; font-family:Arial; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+        body { margin:0; background:#0b141a; color:#e9edef; font-family:Arial, sans-serif; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
         
         /* Login */
-        #login { position:fixed; inset:0; background:#0b141a; display:flex; justify-content:center; align-items:center; z-index:1000; gap:20px; flex-wrap:wrap; padding:20px; }
-        .card { background:#202c33; padding:20px; border-radius:10px; width:280px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        input, button { width:100%; padding:10px; margin:5px 0; border:none; border-radius:5px; box-sizing:border-box; outline:none; }
+        #login { position:fixed; inset:0; background:#0b141a; display:flex; justify-content:center; align-items:center; z-index:1000; gap:20px; flex-wrap:wrap; padding:20px; overflow-y:auto; }
+        .card { background:#202c33; padding:25px; border-radius:15px; width:100%; max-width:320px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        input, button { width:100%; padding:12px; margin:8px 0; border:none; border-radius:8px; box-sizing:border-box; outline:none; font-size:15px; }
         input { background:#2a3942; color:white; }
         button { background:#00a884; color:white; cursor:pointer; font-weight:bold; transition: 0.2s; }
         button:hover { background:#06cf9c; }
         
         /* شريط المتصلين والإعدادات */
-        .chat-header { background:#202c33; padding:12px 20px; display:none; justify-content:space-between; align-items:center; border-bottom:1px solid #2a3942; z-index:10; }
+        .chat-header { background:#202c33; padding:10px 15px; display:none; justify-content:space-between; align-items:center; border-bottom:1px solid #2a3942; z-index:10; }
         #online-list { font-size:13px; color:#00a884; font-weight:bold; }
-        .settings-btn { cursor:pointer; font-size:20px; transition:0.2s; }
+        .settings-btn { cursor:pointer; font-size:22px; transition:0.2s; }
         .settings-btn:hover { transform:rotate(90deg); }
 
         /* نافذة الإعدادات */
-        #settings-modal { position:fixed; inset:0; background:rgba(0,0,0,0.8); display:none; justify-content:center; align-items:center; z-index:2000; }
+        #settings-modal { position:fixed; inset:0; background:rgba(0,0,0,0.8); display:none; justify-content:center; align-items:center; z-index:2000; padding:20px;}
 
         /* Chat Layout */
-        #messages { flex:1; overflow:auto; padding:20px; list-style:none; display:flex; flex-direction:column; gap:8px; background-color:#0b141a; background-size: cover; background-position: center; background-blend-mode: overlay; transition: background 0.5s; }
-        .bg-default { background-color: rgba(11, 20, 26, 0.9); }
-
-        .message-item { max-width:75%; padding:8px 12px; border-radius:10px; position:relative; cursor:pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        #messages { flex:1; overflow-y:auto; padding:15px; list-style:none; display:flex; flex-direction:column; gap:10px; background-color:#0b141a; transition: background 0.5s; margin:0; }
+        
+        .message-item { max-width:85%; padding:10px 14px; border-radius:12px; position:relative; cursor:pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.2); font-size:15px; line-height:1.4; word-wrap:break-word; }
         .my-message { align-self:flex-end; background:#005c4b; border-top-left-radius: 0; }
         .other-message { align-self:flex-start; background:#202c33; border-top-right-radius: 0; }
         
         /* Reply System */
-        .reply-area { background:rgba(0,0,0,0.3); border-right:4px solid #00a884; padding:6px; margin-bottom:6px; border-radius:5px; font-size:13px; color:#cfd5d8; }
-        #reply-bar { background:#202c33; padding:12px; display:none; border-bottom:1px solid #2a3942; justify-content:space-between; align-items:center; }
+        .reply-area { background:rgba(0,0,0,0.3); border-right:4px solid #00a884; padding:8px; margin-bottom:8px; border-radius:6px; font-size:13px; color:#cfd5d8; }
+        #reply-bar { background:#202c33; padding:10px 15px; display:none; border-bottom:1px solid #2a3942; justify-content:space-between; align-items:center; }
         
         /* شريط التحميل */
         #progress-container { width:100%; background:#2a3942; display:none; height:4px; }
         #progress-bar { width:0%; height:100%; background:#00a884; transition:0.2s; }
 
         /* معاينة الصوت */
-        #voice-preview { display:none; background:#202c33; padding:10px; align-items:center; gap:10px; border-top:1px solid #2a3942; }
+        #voice-preview { display:none; background:#202c33; padding:10px; align-items:center; gap:10px; border-top:1px solid #2a3942; flex-wrap:wrap; }
         
         /* Input Bar */
-        .input-bar { display:none; gap:10px; padding:10px 15px; background:#202c33; align-items:center; }
-        #msg { flex:1; border-radius:20px; padding:10px 15px; background:#2a3942; color:white; border:none; }
-        .icon { font-size:22px; cursor:pointer; color:#8696a0; transition: 0.2s; }
+        .input-bar { display:none; gap:8px; padding:10px; background:#202c33; align-items:center; }
+        #msg { flex:1; border-radius:24px; padding:12px 15px; background:#2a3942; color:white; border:none; font-size:15px; }
+        .icon { font-size:24px; cursor:pointer; color:#8696a0; transition: 0.2s; padding:5px; }
         .icon:hover { color:#e9edef; }
+        .send-btn { width:45px; height:45px; border-radius:50%; display:flex; align-items:center; justify-content:center; padding:0; background:#00a884; flex-shrink:0; }
         .recording { color:#f44336; animation: blink 1s infinite; }
         @keyframes blink { 50% { opacity: 0.3; } }
+
+        /* Media Queries للنقال */
+        @media (max-width: 600px) {
+            .chat-header { padding: 8px 12px; }
+            #online-list { font-size: 11px; }
+            .message-item { max-width: 90%; font-size:14px; }
+            .input-bar { padding: 8px; gap:6px; }
+            #msg { padding: 10px 14px; font-size:14px; }
+            .icon { font-size: 22px; }
+            .send-btn { width:40px; height:40px; }
+        }
     </style>
 </head>
 <body>
@@ -56,14 +69,14 @@
 <!-- شاشة الدخول -->
 <div id="login">
     <div class="card">
-        <h3 style="text-align:center; color:#00a884;">إنشاء غرفة</h3>
+        <h3 style="text-align:center; color:#00a884; margin-top:0;">إنشاء غرفة</h3>
         <input id="newRoom" placeholder="اسم الغرفة">
         <input id="newPass" type="password" placeholder="كلمة السر">
         <input id="newBg" placeholder="رابط صورة الخلفية (اختياري)">
         <button onclick="createRoom()">إنشاء</button>
     </div>
     <div class="card">
-        <h3 style="text-align:center; color:#00a884;">دخول</h3>
+        <h3 style="text-align:center; color:#00a884; margin-top:0;">دخول</h3>
         <input id="username" placeholder="اسمك المستعار">
         <input id="room" placeholder="اسم الغرفة">
         <input id="password" type="password" placeholder="كلمة السر">
@@ -79,9 +92,9 @@
 
 <!-- نافذة الإعدادات -->
 <div id="settings-modal">
-    <div class="card" style="width:300px;">
-        <h3 style="color:#00a884; text-align:center;">إعدادات الغرفة</h3>
-        <p style="font-size:12px; color:#8696a0; text-align:center;">قم بوضع رابط مباشر للصورة لتغيير خلفية الغرفة للجميع.</p>
+    <div class="card">
+        <h3 style="color:#00a884; text-align:center; margin-top:0;">إعدادات الغرفة</h3>
+        <p style="font-size:13px; color:#8696a0; text-align:center;">قم بوضع رابط مباشر للصورة لتغيير خلفية الغرفة للجميع.</p>
         <input id="updateBgInput" placeholder="رابط الصورة (URL)">
         <button onclick="saveSettings()">حفظ وتطبيق</button>
         <button onclick="closeSettings()" style="background:#3b4a54">إغلاق</button>
@@ -89,22 +102,22 @@
 </div>
 
 <div id="progress-container"><div id="progress-bar"></div></div>
-<ul id="messages" class="bg-default"></ul>
+<ul id="messages"></ul>
 
 <!-- شريط الرد -->
 <div id="reply-bar">
-    <div style="display:flex; flex-direction:column;">
-        <span style="font-size:11px; color:#00a884; font-weight:bold;">الرد على:</span>
-        <span id="reply-text" style="font-size:13px; color:#8696a0;"></span>
+    <div style="display:flex; flex-direction:column; max-width:85%;">
+        <span style="font-size:12px; color:#00a884; font-weight:bold;">الرد على:</span>
+        <span id="reply-text" style="font-size:13px; color:#8696a0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></span>
     </div>
-    <span onclick="cancelReply()" style="cursor:pointer; font-size:20px;">✕</span>
+    <span onclick="cancelReply()" style="cursor:pointer; font-size:20px; color:#8696a0; padding:5px;">✕</span>
 </div>
 
 <!-- معاينة الصوت -->
 <div id="voice-preview">
-    <audio id="preview-player" controls style="flex:1"></audio>
-    <button onclick="sendVoice()" style="width:auto; padding:5px 15px;">إرسال</button>
-    <button onclick="cancelVoice()" style="width:auto; padding:5px 15px; background:#f44336;">حذف</button>
+    <audio id="preview-player" controls style="flex:1; min-width:200px; height:40px;"></audio>
+    <button onclick="sendVoice()" style="width:auto; padding:8px 15px; flex:1;">إرسال</button>
+    <button onclick="cancelVoice()" style="width:auto; padding:8px 15px; background:#f44336; flex:1;">حذف</button>
 </div>
 
 <!-- شريط الإدخال -->
@@ -113,7 +126,7 @@
     <input type="file" id="file" hidden onchange="sendFile()">
     <input id="msg" placeholder="اكتب رسالة..." onkeypress="if(event.key==='Enter')sendMessage()">
     <span id="mic" class="icon" onclick="toggleMic()">🎤</span>
-    <button onclick="sendMessage()" style="width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; padding:0; background:#00a884;">➤</button>
+    <button class="send-btn" onclick="sendMessage()">➤</button>
 </div>
 
 <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
@@ -122,17 +135,13 @@
     let username = "", currentRoom = "", currentPass = "", currentReply = null, recordedBlob = null;
     let mediaRecorder, audioChunks = [];
 
-    // ====== الإنشاء والدخول ======
     function createRoom(){
         const name = document.getElementById("newRoom").value;
         const pass = document.getElementById("newPass").value;
         const bg = document.getElementById("newBg").value;
-        
         if(!name || !pass) return alert("يرجى إدخال اسم الغرفة وكلمة السر");
-        
         fetch("/create_room",{
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
+            method:"POST", headers:{"Content-Type":"application/json"},
             body:JSON.stringify({name: name, password: pass, background: bg})
         }).then(r=>r.json()).then(d=>alert(d.msg));
     }
@@ -142,18 +151,14 @@
         currentRoom = document.getElementById("room").value;
         currentPass = document.getElementById("password").value;
         if(!username || !currentRoom || !currentPass) return alert("يرجى إكمال البيانات");
-        
         socket.emit("join",{username, room:currentRoom, password:currentPass});
     }
 
-    // ====== أحداث السيرفر (Sockets) ======
     socket.on("join_status", data => {
         if(data.status==='success') {
             document.getElementById("login").style.display="none";
             document.getElementById("chat-header").style.display="flex";
             document.getElementById("input-bar").style.display="flex";
-            
-            // تطبيق الخلفية إن وجدت، وإلا لغرفة 1437
             if(data.bg) applyBackground(data.bg);
             else if(currentRoom === "1437") applyBackground('/static/download.jpg');
         }
@@ -161,27 +166,22 @@
 
     socket.on("error_msg", msg => alert(msg));
 
-    // تحديث المتصلين
     socket.on("update_users", users => {
-        const count = users.length;
-        document.getElementById("online-list").innerText = `المتواجدون (${count}): ` + users.join(" ، ");
+        document.getElementById("online-list").innerText = `المتواجدون (${users.length}): ` + users.join(" ، ");
     });
 
-    // تحديث الخلفية بشكل حي
     socket.on("bg_updated", bgUrl => applyBackground(bgUrl));
 
-    // ====== الإعدادات والخلفية ======
+    // ==== دالة الخلفية بعد التعديل للنقال والمقاسات ====
     function applyBackground(url) {
         if(!url) return;
         const msgBox = document.getElementById("messages");
         msgBox.style.backgroundImage = `url('${url}')`;
-    
-        // الخيار الأول: إظهار الصورة كاملة (بدون تمطيط) مع خلفية غامقة للجوانب
-        msgBox.style.backgroundSize = "contain"; 
+        msgBox.style.backgroundSize = "cover"; // يغطي الشاشة بالكامل
+        msgBox.style.backgroundPosition = "center top"; // التركيز على الأعلى (الوجوه)
+        msgBox.style.backgroundAttachment = "fixed"; 
         msgBox.style.backgroundRepeat = "no-repeat";
-        msgBox.style.backgroundPosition = "center center";
-        msgBox.style.backgroundAttachment = "fixed";
-        msgBox.style.backgroundColor = "#0b141a"; // لون الخلفية الأصلي لسد الفراغات الجانبية
+        msgBox.style.backgroundColor = "rgba(11, 20, 26, 0.85)";
     }
 
     function openSettings() { document.getElementById("settings-modal").style.display="flex"; }
@@ -190,30 +190,25 @@
     function saveSettings() {
         let bgUrl = document.getElementById("updateBgInput").value;
         fetch("/update_bg", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
+            method: "POST", headers: {"Content-Type": "application/json"},
             body: JSON.stringify({room: currentRoom, password: currentPass, bg_url: bgUrl})
-        }).then(r => r.json()).then(d => {
-            alert(d.msg);
-            closeSettings();
-        });
+        }).then(r => r.json()).then(d => { alert(d.msg); closeSettings(); });
     }
 
-    // ====== عرض وإرسال الرسائل ======
     socket.on("message", data => {
         let li = document.createElement("li");
         li.className = "message-item " + (data.username === username ? "my-message" : "other-message");
         
-        let html = `<div style="font-size:11px; color:#8696a0; margin-bottom:4px; display:flex; justify-content:space-between;">
-            <span style="color:#ffbc38; font-weight:bold;">${data.username}</span><span>${data.time}</span>
+        let html = `<div style="font-size:12px; color:#8696a0; margin-bottom:5px; display:flex; justify-content:space-between;">
+            <span style="color:#ffbc38; font-weight:bold;">${data.username}</span><span style="margin-right:10px;">${data.time}</span>
         </div>`;
         
         if(data.reply_to) html += `<div class="reply-area">"${data.reply_to}"</div>`;
         
         if(data.file){
-            if(data.file_type==='image') html += `<img src="/static/uploads/${data.file}" style="max-width:100%; border-radius:5px; margin-top:5px;">`;
-            else if(data.file_type==='video') html += `<video controls src="/static/uploads/${data.file}" style="max-width:100%; border-radius:5px; margin-top:5px;"></video>`;
-            else if(data.file_type==='audio') html += `<audio controls src="/static/uploads/${data.file}" style="margin-top:5px;"></audio>`;
+            if(data.file_type==='image') html += `<img src="/static/uploads/${data.file}" style="max-width:100%; border-radius:8px; margin-top:5px;">`;
+            else if(data.file_type==='video') html += `<video controls src="/static/uploads/${data.file}" style="max-width:100%; border-radius:8px; margin-top:5px;"></video>`;
+            else if(data.file_type==='audio') html += `<audio controls src="/static/uploads/${data.file}" style="margin-top:5px; max-width:100%; height:40px;"></audio>`;
         }
         if(data.msg) html += `<div>${data.msg}</div>`;
         
@@ -226,7 +221,7 @@
 
     function setReply(txt){
         currentReply = txt;
-        document.getElementById("reply-text").innerText = txt.substring(0, 50) + (txt.length > 50 ? "..." : "");
+        document.getElementById("reply-text").innerText = txt.substring(0, 40) + (txt.length > 40 ? "..." : "");
         document.getElementById("reply-bar").style.display = "flex";
         document.getElementById("msg").focus();
     }
@@ -244,18 +239,15 @@
         cancelReply();
     }
 
-    // ====== رفع الملفات والصوت ======
     async function sendFile(){
         let file=document.getElementById("file").files[0];
         if(!file) return;
         document.getElementById("progress-container").style.display="block";
-        const chunkSize=1024*512;
-        let offset=0, index=0;
+        const chunkSize=1024*512; let offset=0, index=0;
         while(offset < file.size){
             let fd=new FormData();
             fd.append("chunk", file.slice(offset, offset + chunkSize));
-            fd.append("filename", file.name);
-            fd.append("index", index);
+            fd.append("filename", file.name); fd.append("index", index);
             await fetch("/upload_chunk",{method:"POST", body:fd});
             offset+=chunkSize; index++;
             document.getElementById("progress-bar").style.width = Math.min((offset/file.size)*100, 100) + "%";
