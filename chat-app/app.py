@@ -7,7 +7,7 @@ from datetime import datetime
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret_anas_1437'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat_pro_v2.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat_pro_v3.db' # قاعدة بيانات جديدة V3
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -16,11 +16,12 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
 
-# ===== DATABASE =====
+# ===== MODELS =====
 class Room(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True)
     password = db.Column(db.String(50))
+    background = db.Column(db.String(500), default="") # مسار الخلفية
 
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -32,6 +33,10 @@ class Message(db.Model):
     reply_to = db.Column(db.String(500))
     time = db.Column(db.String(20))
 
+# ===== MEMORY (للمتصلين) =====
+online_users = {} # { "room_name": { "session_id": "username" } }
+
+# ===== ROUTES =====
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -40,10 +45,23 @@ def home():
 def create_room():
     data = request.json
     if Room.query.filter_by(name=data['name']).first():
-        return {"msg": "اسم الغرفة مستخدم", "status": "error"}
-    db.session.add(Room(name=data['name'], password=data['password']))
+        return {"msg": "اسم الغرفة مستخدم مسبقاً", "status": "error"}
+    
+    bg = data.get('background', '')
+    db.session.add(Room(name=data['name'], password=data['password'], background=bg))
     db.session.commit()
     return {"msg": "تم إنشاء الغرفة بنجاح", "status": "success"}
+
+@app.route('/update_bg', methods=['POST'])
+def update_bg():
+    data = request.json
+    room = Room.query.filter_by(name=data['room'], password=data['password']).first()
+    if room:
+        room.background = data['bg_url']
+        db.session.commit()
+        socketio.emit('bg_updated', data['bg_url'], to=data['room'])
+        return {"msg": "تم تحديث الخلفية للجميع"}
+    return {"msg": "خطأ في الصلاحيات", "status": "error"}
 
 @app.route('/upload_chunk', methods=['POST'])
 def upload_chunk():
@@ -56,15 +74,27 @@ def upload_chunk():
         f.write(chunk.read())
     return "ok"
 
+# ===== SOCKETS =====
 @socketio.on('join')
 def join(data):
-    r = Room.query.filter_by(name=data['room'], password=data['password']).first()
+    room_name = data['room']
+    r = Room.query.filter_by(name=room_name, password=data['password']).first()
     if not r:
         emit('error_msg', "بيانات الغرفة خاطئة")
         return
-    join_room(data['room'])
-    emit('join_status', 'success')
-    msgs = Message.query.filter_by(room=data['room']).all()
+    
+    join_room(room_name)
+    
+    # إدارة المتصلين
+    if room_name not in online_users:
+        online_users[room_name] = {}
+    online_users[room_name][request.sid] = data['username']
+
+    emit('join_status', {'status': 'success', 'bg': r.background})
+    emit('update_users', list(online_users[room_name].values()), to=room_name)
+
+    # جلب الرسائل
+    msgs = Message.query.filter_by(room=room_name).all()
     for m in msgs:
         emit('message', {
             "username": m.username, "msg": m.content, "file": m.file,
@@ -78,7 +108,7 @@ def handle_message(data):
         ext = data['file'].split('.')[-1].lower()
         if ext in ['jpg', 'jpeg', 'png', 'gif']: f_type = 'image'
         elif ext in ['mp4', 'webm']: f_type = 'video'
-        elif ext in ['webm', 'wav', 'mp3']: f_type = 'audio'
+        elif ext in ['webm', 'wav', 'mp3', 'ogg']: f_type = 'audio'
 
     timestamp = datetime.now().strftime("%I:%M %p")
     db.session.add(Message(
@@ -89,6 +119,15 @@ def handle_message(data):
     data['time'] = timestamp
     data['file_type'] = f_type
     emit('message', data, to=data['room'])
+
+@socketio.on('disconnect')
+def disconnect():
+    sid = request.sid
+    for room_name, users in online_users.items():
+        if sid in users:
+            del users[sid]
+            emit('update_users', list(users.values()), to=room_name)
+            break
 
 with app.app_context():
     db.create_all()
