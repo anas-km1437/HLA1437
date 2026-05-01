@@ -7,7 +7,7 @@ from datetime import datetime
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'anas_chat_2026_final'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat_v12.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat_v14.db' # اسم جديد
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -16,6 +16,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
 
+# --- الموديلات ---
 class Room(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)
@@ -43,13 +44,31 @@ def home():
 
 @app.route('/create_room', methods=['POST'])
 def create_room():
+    try:
+        data = request.json
+        if not data.get('name') or not data.get('password'):
+            return {"msg": "يرجى ملء الاسم وكلمة السر", "status": "error"}
+        
+        if Room.query.filter_by(name=data['name']).first():
+            return {"msg": "اسم الغرفة محجوز", "status": "error"}
+        
+        new_room = Room(name=data['name'], password=data['password'], background=data.get('background', ''))
+        db.session.add(new_room)
+        db.session.commit()
+        return {"msg": "تم إنشاء الغرفة! سجل دخولك الآن", "status": "success"}
+    except Exception as e:
+        return {"msg": f"خطأ: {str(e)}", "status": "error"}
+
+@app.route('/update_bg', methods=['POST'])
+def update_bg():
     data = request.json
-    if Room.query.filter_by(name=data['name']).first():
-        return {"msg": "اسم الغرفة محجوز", "status": "error"}
-    new_room = Room(name=data['name'], password=data['password'], background=data.get('background', ''))
-    db.session.add(new_room)
-    db.session.commit()
-    return {"msg": "تم الإنشاء بنجاح", "status": "success"}
+    room = Room.query.filter_by(name=data['room'], password=data['password']).first()
+    if room:
+        room.background = data['bg_url']
+        db.session.commit()
+        socketio.emit('bg_updated', data['bg_url'], to=data['room'])
+        return {"msg": "تم تحديث الخلفية"}
+    return {"msg": "خطأ في الصلاحيات", "status": "error"}
 
 @app.route('/upload_chunk', methods=['POST'])
 def upload_chunk():
@@ -62,15 +81,20 @@ def upload_chunk():
 
 @socketio.on('join')
 def join(data):
-    r = Room.query.filter_by(name=data['room'], password=data['password']).first()
-    if r:
-        join_room(data['room'])
-        online_users.setdefault(data['room'], {})[request.sid] = data['username']
-        emit('join_status', {'status': 'success', 'bg': r.background})
-        emit('update_users', list(online_users[data['room']].values()), to=data['room'])
-        msgs = Message.query.filter_by(room=data['room']).all()
-        for m in msgs:
-            emit('message', {"username": m.username, "msg": m.content, "file": m.file, "file_type": m.file_type, "reply_to": m.reply_to, "time": m.time})
+    room_name = data['room']
+    r = Room.query.filter_by(name=room_name, password=data['password']).first()
+    if not r:
+        emit('error_msg', "بيانات الغرفة غير صحيحة")
+        return
+    join_room(room_name)
+    if room_name not in online_users: online_users[room_name] = {}
+    online_users[room_name][request.sid] = data['username']
+    emit('join_status', {'status': 'success', 'bg': r.background})
+    emit('update_users', list(online_users[room_name].values()), to=room_name)
+    
+    msgs = Message.query.filter_by(room=room_name).all()
+    for m in msgs:
+        emit('message', {"username": m.username, "msg": m.content, "file": m.file, "file_type": m.file_type, "reply_to": m.reply_to, "time": m.time})
 
 @socketio.on('message')
 def handle_message(data):
@@ -84,11 +108,10 @@ def handle_message(data):
         elif ext in ['wav', 'mp3', 'ogg', 'm4a']: 
             f_type = 'audio'
         elif ext == 'webm':
-            # التفرقة بين فيديو webm وتسجيل الصوت الذي يبدأ بكلمة voice_
             if data['file'].startswith('voice_'): f_type = 'audio'
             else: f_type = 'video'
         else:
-            f_type = 'file' # لباقي الملفات مثل pdf وغيرها
+            f_type = 'file'
     
     timestamp = datetime.now().strftime("%I:%M %p")
     db.session.add(Message(room=data['room'], username=data['username'], content=data.get('msg'), file=data.get('file'), file_type=f_type, reply_to=data.get('reply_to'), time=timestamp))
