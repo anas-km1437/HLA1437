@@ -7,7 +7,7 @@ from datetime import datetime
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'anas_chat_2026_final'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat_v11_pro.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat_v12.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
