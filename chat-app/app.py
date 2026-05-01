@@ -5,9 +5,10 @@ import os
 from datetime import datetime
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secret_anas_1437'
+app.config['SECRET_KEY'] = 'anas_secret_2026'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat_pro_v5.db'
+# استخدام اسم قاعدة بيانات جديد لضمان تحديث الجداول
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat_final_v1.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -16,11 +17,11 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
 
-# Models
+# الموديلات (قواعد البيانات)
 class Room(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), unique=True)
-    password = db.Column(db.String(50))
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    password = db.Column(db.String(50), nullable=False)
     background = db.Column(db.String(500), default="")
 
 class Message(db.Model):
@@ -41,13 +42,24 @@ def home():
 
 @app.route('/create_room', methods=['POST'])
 def create_room():
-    data = request.json
-    if Room.query.filter_by(name=data['name']).first():
-        return {"msg": "اسم الغرفة مستخدم مسبقاً", "status": "error"}
-    bg = data.get('background', '')
-    db.session.add(Room(name=data['name'], password=data['password'], background=bg))
-    db.session.commit()
-    return {"msg": "تم إنشاء الغرفة بنجاح", "status": "success"}
+    try:
+        data = request.json
+        if not data.get('name') or not data.get('password'):
+            return {"msg": "يرجى ملء كافة الحقول الأساسية", "status": "error"}
+            
+        if Room.query.filter_by(name=data['name']).first():
+            return {"msg": "اسم الغرفة مستخدم مسبقاً، اختر اسماً آخر", "status": "error"}
+        
+        new_room = Room(
+            name=data['name'], 
+            password=data['password'], 
+            background=data.get('background', '')
+        )
+        db.session.add(new_room)
+        db.session.commit()
+        return {"msg": "تم إنشاء الغرفة بنجاح! يمكنك الدخول الآن", "status": "success"}
+    except Exception as e:
+        return {"msg": f"خطأ في السيرفر: {str(e)}", "status": "error"}
 
 @app.route('/update_bg', methods=['POST'])
 def update_bg():
@@ -57,8 +69,8 @@ def update_bg():
         room.background = data['bg_url']
         db.session.commit()
         socketio.emit('bg_updated', data['bg_url'], to=data['room'])
-        return {"msg": "تم تحديث الخلفية للجميع"}
-    return {"msg": "خطأ في الصلاحيات", "status": "error"}
+        return {"msg": "تم تحديث الخلفية"}
+    return {"msg": "بيانات الغرفة غير صحيحة", "status": "error"}
 
 @app.route('/upload_chunk', methods=['POST'])
 def upload_chunk():
@@ -76,13 +88,15 @@ def join(data):
     room_name = data['room']
     r = Room.query.filter_by(name=room_name, password=data['password']).first()
     if not r:
-        emit('error_msg', "بيانات الغرفة خاطئة")
+        emit('error_msg', "عذراً، اسم الغرفة أو كلمة السر خطأ")
         return
     join_room(room_name)
     if room_name not in online_users: online_users[room_name] = {}
     online_users[room_name][request.sid] = data['username']
     emit('join_status', {'status': 'success', 'bg': r.background})
     emit('update_users', list(online_users[room_name].values()), to=room_name)
+    
+    # تحميل الرسائل القديمة
     msgs = Message.query.filter_by(room=room_name).all()
     for m in msgs:
         emit('message', {"username": m.username, "msg": m.content, "file": m.file, "file_type": m.file_type, "reply_to": m.reply_to, "time": m.time})
@@ -95,8 +109,12 @@ def handle_message(data):
         if ext in ['jpg', 'jpeg', 'png', 'gif']: f_type = 'image'
         elif ext in ['mp4', 'webm']: f_type = 'video'
         else: f_type = 'audio'
+    
     timestamp = datetime.now().strftime("%I:%M %p")
-    db.session.add(Message(room=data['room'], username=data['username'], content=data.get('msg'), file=data.get('file'), file_type=f_type, reply_to=data.get('reply_to'), time=timestamp))
+    db.session.add(Message(
+        room=data['room'], username=data['username'], content=data.get('msg'),
+        file=data.get('file'), file_type=f_type, reply_to=data.get('reply_to'), time=timestamp
+    ))
     db.session.commit()
     data['time'] = timestamp
     data['file_type'] = f_type
@@ -111,5 +129,6 @@ def disconnect():
             break
 
 if __name__ == '__main__':
-    with app.app_context(): db.create_all()
+    with app.app_context():
+        db.create_all()
     socketio.run(app, host='0.0.0.0', port=10000)
