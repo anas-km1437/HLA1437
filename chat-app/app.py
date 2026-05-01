@@ -77,9 +77,18 @@ def handle_message(data):
     f_type = None
     if data.get('file'):
         ext = data['file'].split('.')[-1].lower()
-        if ext in ['jpg', 'jpeg', 'png', 'gif']: f_type = 'image'
-        elif ext in ['mp4', 'webm', 'mov']: f_type = 'video'
-        elif ext in ['webm', 'wav', 'mp3', 'ogg']: f_type = 'audio'
+        if ext in ['jpg', 'jpeg', 'png', 'gif']: 
+            f_type = 'image'
+        elif ext in ['mp4', 'mov', 'avi', 'mkv']: 
+            f_type = 'video'
+        elif ext in ['wav', 'mp3', 'ogg', 'm4a']: 
+            f_type = 'audio'
+        elif ext == 'webm':
+            # التفرقة بين فيديو webm وتسجيل الصوت الذي يبدأ بكلمة voice_
+            if data['file'].startswith('voice_'): f_type = 'audio'
+            else: f_type = 'video'
+        else:
+            f_type = 'file' # لباقي الملفات مثل pdf وغيرها
     
     timestamp = datetime.now().strftime("%I:%M %p")
     db.session.add(Message(room=data['room'], username=data['username'], content=data.get('msg'), file=data.get('file'), file_type=f_type, reply_to=data.get('reply_to'), time=timestamp))
